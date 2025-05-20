@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 # Corrected imports from langchain_community
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.chains import RetrievalQA, create_history_aware_retriever # Added create_history_aware_retriever
+from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import GoogleGenerativeAI
 from concurrent.futures import ThreadPoolExecutor
@@ -26,7 +26,7 @@ from sentence_transformers import SentenceTransformer
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 # Import message types for history reconstruction
-from langchain_core.messages import HumanMessage, AIMessage, MessagesPlaceholder # Added MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage
 
 import google.generativeai as genai
 import logging # Add logging for better error inspection
@@ -125,13 +125,11 @@ except Exception as e:
 scripture_prompt = PromptTemplate.from_template("""
 You are an AI assistant specialized in Hindu scriptures and spiritual guidance.
 Based on the following conversation history and the user's query, provide a simple, practical, and culturally relevant answer or guidance.
-If the user's query is vague or refers to a previous topic (e.g., "he", "it"), **always use the chat history to understand who or what is being referred to.**
 If a specific **{spiritual_concept}** or **{life_problem}** is mentioned or inferred, prioritize insights from relevant **{scripture_source}**.
 Focus on teachings from primary Hindu texts and their practical application.
 Be helpful, encouraging, and specific where possible.
 Use the chat history to understand the context of the user's current query and maintain continuity.
 Strictly adhere to the **{spiritual_concept}** and **{life_problem}** requirements, and the **{scripture_source}** preference if specified.
-**Ensure your language is simple, clear, and easy for a general audience to understand.**
 
 Chat History:
 {chat_history}
@@ -147,42 +145,18 @@ Guidance based on Hindu Scripture (Tailored for {spiritual_concept}, {life_probl
 logging.info("RAG Prompt template created for Hindu scriptures.")
 
 # --- Retrieval QA Chain Setup ---
-# Define a prompt for the history-aware retriever to rephrase the question
-rephrase_prompt = PromptTemplate.from_template("""
-Given the following conversation and a follow-up question, rephrase the follow-up question to be a standalone question.
-
-Chat History:
-{chat_history}
-Follow Up Input: {question}
-Standalone question:""")
-
-# Create the history-aware retriever
-# This will take chat history and the current question to produce a standalone question for retrieval
-history_aware_retriever = create_history_aware_retriever(
-    llm_gemini,
-    db.as_retriever(search_kwargs={"k": 5}), # Use the base retriever here
-    rephrase_prompt
-)
-logging.info("History-aware retriever initialized.")
-
-# Now, the RAG chain will use the history-aware retriever
-# The prompt for the RAG chain will still include chat history for context in generation
 try:
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm_gemini,
-        # The retriever here is the history-aware one
-        retriever=history_aware_retriever,
+        retriever=db.as_retriever(search_kwargs={"k": 5}),
         chain_type="stuff",
-        return_source_documents=True,
-        # Pass the scripture_prompt here for the generation step
-        chain_type_kwargs={"prompt": scripture_prompt}
+        return_source_documents=True
     )
-    logging.info("Retrieval QA Chain initialized successfully with history-aware retriever.")
+    logging.info("Retrieval QA Chain initialized successfully.")
 except Exception as e:
     st.error(f"QA Chain setup error: {e}")
     logging.exception("Full QA Chain setup traceback:")
     st.stop()
-
 
 # --- Session History Management (No Change Needed) ---
 store = {}
@@ -195,7 +169,6 @@ def get_session_history(session_id: str) -> ChatMessageHistory:
     return store[session_id]
 
 # --- Conversational QA Chain Setup (Uses new prompt) ---
-# The RunnableWithMessageHistory now wraps the qa_chain which internally uses the history-aware retriever
 conversational_qa_chain = RunnableWithMessageHistory(
     qa_chain,
     get_session_history,
@@ -212,7 +185,6 @@ Your goal is to synthesize information from a primary RAG-based answer and sever
 Prioritize the Primary RAG Answer. If it's weak or irrelevant, use Additional Suggestions.
 Ensure the final guidance is clear, actionable, and respectful of Hindu traditions. Present as a clear paragraph or a list of points.
 If the user's input was *only* a greeting, respond politely. For inputs that include a greeting but also contain a query, focus on answering the query.
-**Ensure your language is simple, clear, and easy for a general audience to understand.**
 
 Primary RAG Answer:
 {rag}
@@ -233,7 +205,6 @@ Prioritize the Primary RAG Answer. If it's weak or irrelevant, use Additional Su
 Ensure the final guidance is clear, actionable, and respectful of Hindu traditions.
 **You MUST present the final guidance as a clear markdown table if appropriate. Include columns for Concept/Teaching, Scripture Reference, and Practical Application.**
 If the user's input was *only* a greeting, respond politely. For inputs that include a greeting but also contain a query, focus on answering the query.
-**Ensure your language is simple, clear, and easy for a general audience to understand.**
 
 Primary RAG Answer:
 {rag}
@@ -256,8 +227,7 @@ def groq_scripture_answer(model_name: str, query: str, spiritual_concept: str = 
         headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
         groq_model_map = {"llama": "llama3-70b-8192", "mixtral": "mixtral-8x7b-32976", "gemma": "gemma2-9b-it"}
         actual_model_name = groq_model_map.get(model_name.lower(), model_name)
-        # Replaced f-string with triple quotes and removed .replace() for robustness
-        prompt_content = f"""User query: '{query}'. Provide a concise, practical spiritual guidance or answer related to **{spiritual_concept}** for **{life_problem}**, referencing **{scripture_source}** if applicable. Be brief and use simple, easy-to-understand English."""
+        prompt_content = f"User query: '{query}'. Provide a concise, practical spiritual guidance or answer related to **{spiritual_concept}** for **{life_problem}**, referencing **{scripture_source}** if applicable. Be brief."
         payload = {"model": actual_model_name, "messages": [{"role": "user", "content": prompt_content}], "temperature": 0.5, "max_tokens": 250}
         logging.info(f"Calling Groq API: {actual_model_name} for query: '{query}' (Concept: {spiritual_concept}, Problem: {life_problem}, Source: {scripture_source})")
         response = requests.post(url, headers=headers, json=payload, timeout=30)
@@ -452,7 +422,7 @@ if session_id_input and session_id_input != st.session_state.session_id:
     st.session_state.last_substantive_query = temp_last_substantive_query
     st.session_state.messages = new_ui_messages
     logging.info(f"Switched to session {st.session_state.session_id}. Loaded {len(new_ui_messages)} UI messages. Last substantive: '{temp_last_substantive_query}'")
-    st.toast(f"Switched to session: {st.session_id}. History loaded.")
+    st.toast(f"Switched to session: {st.session_state.session_id}. History loaded.")
     st.rerun()
 
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -504,7 +474,6 @@ if query:
 
                 rag_answer = "Could not retrieve from knowledge base."
                 try:
-                    # The conversational_qa_chain now internally uses the history-aware retriever
                     rag_result = conversational_qa_chain.invoke(
                         {"question": query_for_rag_and_groq,
                          "spiritual_concept": st.session_state.spiritual_concept,
@@ -560,3 +529,7 @@ if query:
                     session_history.messages.pop()
                 session_history.add_ai_message(final_answer)
                 logging.info("Final merged answer added to Langchain history.")
+
+st.markdown("---")
+st.markdown("Disclaimer: This advisor provides general spiritual guidance based on scriptures. For personal spiritual practice or complex life issues, consulting a qualified spiritual teacher or counselor is recommended.")
+logging.info("Application request processing finished.")
