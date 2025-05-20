@@ -56,22 +56,16 @@ if not GROQ_API_KEY:
     st.warning("GROQ_API_KEY not found. Groq suggestions will be unavailable.")
     logging.warning("GROQ_API_KEY not found.")
 try:
-    logging.info("Attempting to load SentenceTransformer model for embeddings.")
-    try:
-        model = SentenceTransformer("all-MiniLM-L6-v2")
-        model = model.to("cpu")  # ✅ Move to CPU safely after loading
-        logging.info("SentenceTransformer model 'all-MiniLM-L6-v2' is available.")
-    except Exception as model_e:
-        st.error(f"Failed to load SentenceTransformer model: {model_e}. Please check your internet connection or environment.")
-        logging.error(f"SentenceTransformer model loading error: {model_e}")
-        st.stop()
+    logging.info("Initializing HuggingFaceEmbeddings with 'all-MiniLM-L6-v2' on CPU.")
+    
     embedding = HuggingFaceEmbeddings(
         model_name="all-MiniLM-L6-v2",
         model_kwargs={"device": "cpu"},
         encode_kwargs={'normalize_embeddings': True}
     )
     logging.info("HuggingFaceEmbeddings initialized successfully.")
-    chroma_db_directory = "db" # Changed from "db"
+    
+    chroma_db_directory = "db"
     if not os.path.exists(chroma_db_directory):
         st.error(f"ChromaDB directory '{chroma_db_directory}' not found. Please ensure the DB is initialized first with your Hindu scriptures.")
         logging.error(f"ChromaDB directory '{chroma_db_directory}' not found.")
@@ -84,6 +78,7 @@ except Exception as e:
     st.error(f"VectorDB setup error: {e}")
     logging.exception("Full VectorDB setup traceback:")
     st.stop()
+
 
 # --- RAG Prompt Template (UPDATED for Hindu Scriptures) ---
 scripture_prompt = PromptTemplate.from_template("""
