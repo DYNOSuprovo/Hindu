@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 # Corrected imports from langchain_community
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.chains import RetrievalQA
+from langchain.chains import RetrievalQA, create_history_aware_retriever # Added create_history_aware_retriever
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import GoogleGenerativeAI
 from concurrent.futures import ThreadPoolExecutor
@@ -26,7 +26,7 @@ from sentence_transformers import SentenceTransformer
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 # Import message types for history reconstruction
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, MessagesPlaceholder # Added MessagesPlaceholder
 
 import google.generativeai as genai
 import logging # Add logging for better error inspection
@@ -147,18 +147,42 @@ Guidance based on Hindu Scripture (Tailored for {spiritual_concept}, {life_probl
 logging.info("RAG Prompt template created for Hindu scriptures.")
 
 # --- Retrieval QA Chain Setup ---
+# Define a prompt for the history-aware retriever to rephrase the question
+rephrase_prompt = PromptTemplate.from_template("""
+Given the following conversation and a follow-up question, rephrase the follow-up question to be a standalone question.
+
+Chat History:
+{chat_history}
+Follow Up Input: {question}
+Standalone question:""")
+
+# Create the history-aware retriever
+# This will take chat history and the current question to produce a standalone question for retrieval
+history_aware_retriever = create_history_aware_retriever(
+    llm_gemini,
+    db.as_retriever(search_kwargs={"k": 5}), # Use the base retriever here
+    rephrase_prompt
+)
+logging.info("History-aware retriever initialized.")
+
+# Now, the RAG chain will use the history-aware retriever
+# The prompt for the RAG chain will still include chat history for context in generation
 try:
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm_gemini,
-        retriever=db.as_retriever(search_kwargs={"k": 5}),
+        # The retriever here is the history-aware one
+        retriever=history_aware_retriever,
         chain_type="stuff",
-        return_source_documents=True
+        return_source_documents=True,
+        # Pass the scripture_prompt here for the generation step
+        chain_type_kwargs={"prompt": scripture_prompt}
     )
-    logging.info("Retrieval QA Chain initialized successfully.")
+    logging.info("Retrieval QA Chain initialized successfully with history-aware retriever.")
 except Exception as e:
     st.error(f"QA Chain setup error: {e}")
     logging.exception("Full QA Chain setup traceback:")
     st.stop()
+
 
 # --- Session History Management (No Change Needed) ---
 store = {}
@@ -171,6 +195,7 @@ def get_session_history(session_id: str) -> ChatMessageHistory:
     return store[session_id]
 
 # --- Conversational QA Chain Setup (Uses new prompt) ---
+# The RunnableWithMessageHistory now wraps the qa_chain which internally uses the history-aware retriever
 conversational_qa_chain = RunnableWithMessageHistory(
     qa_chain,
     get_session_history,
@@ -232,14 +257,14 @@ def groq_scripture_answer(model_name: str, query: str, spiritual_concept: str = 
         groq_model_map = {"llama": "llama3-70b-8192", "mixtral": "mixtral-8x7b-32976", "gemma": "gemma2-9b-it"}
         actual_model_name = groq_model_map.get(model_name.lower(), model_name)
         # Added instruction for simpler language in Groq prompt
-        prompt_content = f"User query: '{query}'. Provide a concise, practical spiritual guidance or answer related to **{spiritual_concept}** for **{life_problem}**, referencing **{scripture_source}** if applicable. Be brief and use simple, easy-to-understand English."
+        prompt_content = f"User query: '{query.replace(\"'\", \"\\'\")}'. Provide a concise, practical spiritual guidance or answer related to **{spiritual_concept.replace(\"'\", \"\\'\")}** for **{life_problem.replace(\"'\", \"\\'\")}**, referencing **{scripture_source.replace(\"'\", \"\\'\")}** if applicable. Be brief and use simple, easy-to-understand English."
         payload = {"model": actual_model_name, "messages": [{"role": "user", "content": prompt_content}], "temperature": 0.5, "max_tokens": 250}
         logging.info(f"Calling Groq API: {actual_model_name} for query: '{query}' (Concept: {spiritual_concept}, Problem: {life_problem}, Source: {scripture_source})")
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
         data = response.json()
         if data and data.get('choices') and data['choices'][0].get('message'):
-            return data['choices']['0']['message']['content']
+            return data['choices'][0]['message']['content']
         return f"No suggestion from {actual_model_name} (empty/malformed response)."
     except requests.exceptions.Timeout: return f"Timeout error from {model_name}."
     except requests.exceptions.RequestException as e: return f"Request error from {model_name}: {e}"
@@ -427,7 +452,7 @@ if session_id_input and session_id_input != st.session_state.session_id:
     st.session_state.last_substantive_query = temp_last_substantive_query
     st.session_state.messages = new_ui_messages
     logging.info(f"Switched to session {st.session_state.session_id}. Loaded {len(new_ui_messages)} UI messages. Last substantive: '{temp_last_substantive_query}'")
-    st.toast(f"Switched to session: {st.session_id}. History loaded.") # Changed from st.session_state.session_id
+    st.toast(f"Switched to session: {st.session_id}. History loaded.")
     st.rerun()
 
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -479,6 +504,7 @@ if query:
 
                 rag_answer = "Could not retrieve from knowledge base."
                 try:
+                    # The conversational_qa_chain now internally uses the history-aware retriever
                     rag_result = conversational_qa_chain.invoke(
                         {"question": query_for_rag_and_groq,
                          "spiritual_concept": st.session_state.spiritual_concept,
