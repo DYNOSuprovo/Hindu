@@ -1,21 +1,21 @@
 streamlit
 openai
 python-dotenv
-langchain
+langchain==0.1.16 # Pin to a known stable version
 langchain-google-genai
-chromadb==0.4.24 # Keep this pinned
+chromadb==0.4.24
 pysqlite3-binary
 sentence-transformers
 tqdm
 typing-extensions
 concurrent-log-handler
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch==2.3.0+cpu # Or your chosen compatible CPU version
+torch==2.3.0+cpu
 transformers
 accelerate
 pypdf
-langchain-community
+langchain-community==0.0.33 # Pin to a known stable version
+langchain-core==0.1.43 # Add this line and pin to a compatible version
 google-generativeai
 gdown
-# Add this line to pin NumPy to a compatible version
-numpy==1.26.4 # Or 1.26.x, or 1.24.x if 1.26.4 still causes issues
+numpy==1.26.4
