@@ -33,8 +33,14 @@ import logging # Add logging for better error inspection
 import string # Import string module for punctuation removal
 import re # Import regex for regional preference extraction
 
+# Import chromadb directly for explicit client configuration
 import chromadb
 from chromadb.config import Settings # Import Settings for explicit configuration
+
+# --- Streamlit Page Configuration ---
+# This MUST be the first Streamlit command in your script.
+st.set_page_config(page_title="🕉️ Hindu Scripture Advisor", layout="wide")
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -86,12 +92,21 @@ try:
         st.error(error_msg)
         logging.error(error_msg)
         st.stop()
+
+    # --- NEW: Explicitly configure and initialize Chroma Client ---
+    # Define ChromaDB settings to use Disk persistence and the correct path
+    # This also implicitly handles the sqlite3 version by using the pysqlite3-binary
     chroma_settings = Settings(
         persist_directory=chroma_db_directory,
         is_persistent=True # Explicitly state it's persistent
     )
+    # Create a Chroma client with the defined settings
+    # This client will then be passed to the Langchain Chroma wrapper
     chroma_client = chromadb.Client(settings=chroma_settings)
     logging.info("Chroma Client initialized successfully with explicit settings.")
+
+    # Initialize Langchain's Chroma vector store with the explicit client
+    # We pass the client directly, so Langchain's Chroma doesn't try to create its own
     db = Chroma(
         client=chroma_client, # Pass the explicitly created client
         embedding_function=embedding,
@@ -105,6 +120,8 @@ except Exception as e:
     st.error(error_msg)
     logging.exception("Full VectorDB setup traceback:")
     st.stop()
+
+# --- RAG Prompt Template (UPDATED for Hindu Scriptures) ---
 scripture_prompt = PromptTemplate.from_template("""
 You are an AI assistant specialized in Hindu scriptures and spiritual guidance.
 Based on the following conversation history and the user's query, provide a simple, practical, and culturally relevant answer or guidance.
@@ -201,6 +218,7 @@ Refined and Merged Guidance (Tailored for {spiritual_concept}, {life_problem}, f
 """
 merge_prompt_table = PromptTemplate.from_template(merge_prompt_template_table)
 logging.info("Merge Prompt templates created for Hindu scriptures.")
+
 def groq_scripture_answer(model_name: str, query: str, spiritual_concept: str = "general", life_problem: str = "guidance", scripture_source: str = "Hindu scriptures") -> str:
     if not GROQ_API_KEY:
         return f"Groq API key not available."
@@ -340,7 +358,7 @@ def contains_table_request(query: str) -> bool:
     return any(keyword in query_lower for keyword in ["table", "tabular", "chart", "in a table", "in table format", "as a table"])
 
 # --- Streamlit UI (UPDATED for Hindu Scriptures) ---
-st.set_page_config(page_title="🕉️ Hindu Scripture Advisor", layout="wide")
+# st.set_page_config(page_title="🕉️ Hindu Scripture Advisor", layout="wide") # Moved to top
 with st.sidebar:
     st.markdown("👤 **Created by Lord d'Artagnan**")
     st.markdown("---")
@@ -354,7 +372,7 @@ if 'session_id' not in st.session_state:
     st.session_state.session_id = "session_" + os.urandom(8).hex()
     st.session_state.messages = []
     st.session_state.spiritual_concept = "general" # Changed from dietary_type
-    st.session_state.life_problem = "guidance"     # Changed from diet_goal
+    st.session_state.life_problem = "guidance"      # Changed from diet_goal
     st.session_state.scripture_source = "Hindu scriptures" # Changed from region
     st.session_state.table_format_requested = False
     st.session_state.last_substantive_query = ""
@@ -396,7 +414,7 @@ if session_id_input and session_id_input != st.session_state.session_id:
             hist_source = extract_scripture_source(message_obj.content)
             if hist_source != "Hindu scriptures": st.session_state.scripture_source = hist_source
             if contains_table_request(message_obj.content): st.session_state.table_format_requested = True
-            
+
             if not is_formatting_request(message_obj.content) and not is_greeting(message_obj.content):
                 temp_last_substantive_query = message_obj.content
         elif isinstance(message_obj, AIMessage):
@@ -451,7 +469,7 @@ if query:
                 if current_life_problem != "guidance": st.session_state.life_problem = current_life_problem
                 if current_scripture_source != "Hindu scriptures": st.session_state.scripture_source = current_scripture_source
                 if current_table_request: st.session_state.table_format_requested = True
-                
+
                 logging.info(f"Processing with: Query for RAG/Groq='{query_for_rag_and_groq}', SessionConcept='{st.session_state.spiritual_concept}', SessionProblem='{st.session_state.life_problem}', SessionSource='{st.session_state.scripture_source}', TableRequested='{st.session_state.table_format_requested}'")
 
                 rag_answer = "Could not retrieve from knowledge base."
@@ -483,7 +501,7 @@ if query:
                 try:
                     current_merge_prompt = merge_prompt_table if st.session_state.table_format_requested else merge_prompt_default
                     logging.info(f"Using {'TABLE' if st.session_state.table_format_requested else 'DEFAULT'} merge prompt.")
-                    
+
                     merge_input = {
                         "rag": rag_answer,
                         "llama": groq_suggestions.get("llama", "N/A"),
@@ -503,12 +521,12 @@ if query:
 
                 st.markdown(final_answer)
                 st.session_state.messages.append({"role": "assistant", "content": final_answer})
-                
+
                 # Update Langchain history with the final merged answer
                 session_history = get_session_history(st.session_state.session_id)
                 if session_history.messages and isinstance(session_history.messages[-1], AIMessage):
                     logging.info("Popping last RAG AI message from Langchain history to replace with final merged answer.")
-                    session_history.messages.pop() 
+                    session_history.messages.pop()
                 session_history.add_ai_message(final_answer)
                 logging.info("Final merged answer added to Langchain history.")
 
