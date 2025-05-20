@@ -1,3 +1,8 @@
+from pdfs.fetch import download_and_extract
+# Google Drive File ID
+DB_FILE_ID = "1pvrwMfMQ4oPYU-IhHN3mTurM5JJBHCVx"
+# Automatically download and extract if missing
+download_and_extract(DB_FILE_ID, "db.zip", "db")
 import streamlit as st
 import os
 import requests
