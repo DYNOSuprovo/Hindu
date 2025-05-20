@@ -1,77 +1,129 @@
-# Hindu
+🕉️ Hindu Scripture Advisor
+This is a personalized AI chatbot designed to provide guidance and answers based on Hindu scriptures and spiritual concepts. It leverages Retrieval-Augmented Generation (RAG) to fetch relevant insights from a knowledge base of Hindu texts, combined with conversational history and suggestions from multiple Large Language Models (LLMs) for comprehensive and nuanced responses.
 
-**Hindu** is a Python-based project designed to process and analyze PDF documents using vector embeddings. It leverages modern natural language processing techniques to enable efficient information retrieval and semantic search capabilities.
+✨ Features
+Retrieval-Augmented Generation (RAG): Fetches relevant passages from a dedicated vector database of Hindu scriptures to ground responses.
 
-## Features
+Conversational Memory: Maintains chat history to provide context-aware and continuous guidance.
 
-- **PDF Processing**: Extracts text content from PDF files located in the `pdfs/` directory.
-- **Vector Embedding**: Converts textual data into vector representations for advanced analysis.
-- **Semantic Search**: Implements search functionalities to find relevant information based on vector similarities.
-- **Modular Design**: Structured with separate scripts for building the vector database and testing, ensuring clarity and maintainability.
+Multi-LLM Integration: Combines insights from Google's Gemini-1.5-Flash with additional suggestions from LLaMA, Mixtral, and Gemma (via Groq API) for richer answers.
 
-## Prerequisites
+Dynamic Guidance: Extracts spiritual concepts (e.g., Dharma, Karma), life problems (e.g., stress, grief), and specific scripture sources (e.g., Bhagavad Gita, Vedas) from user queries to tailor responses.
 
-- Python 3.7 or higher
-- Recommended to use a virtual environment to manage dependencies
+Flexible Formatting: Can provide guidance in a narrative format or a structured markdown table (e.g., Concept, Scripture Reference, Practical Application).
 
-## Installation
+Beautiful & Intuitive UI: Features a warm, inviting orangish gradient theme for a pleasant user experience.
 
-1. **Clone the Repository**
+🚀 Setup and Installation
+Follow these steps to get the Hindu Scripture Advisor up and running on your local machine.
 
-   ```bash
-   git clone https://github.com/DYNOSuprovo/Hindu.git
-   cd Hindu
-   ```
+Prerequisites
+Python 3.8+
 
-2. **Set Up Virtual Environment (Optional but Recommended)**
+pip (Python package installer)
 
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+Access to Google Gemini API and optionally Groq API.
 
-3. **Install Dependencies**
+1. Clone the Repository
+git clone <your-repository-url>
+cd <your-repository-name>
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. Create a Virtual Environment (Recommended)
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-## Usage
+3. Install Dependencies
+Install the required Python libraries:
 
-### 1. Build the Vector Database
+pip install -r requirements.txt
 
-Process the PDFs and create a vector database for semantic search.
+requirements.txt content:
 
-```bash
-python build_vector_db.py
-```
+streamlit
+python-dotenv
+langchain-community
+langchain-google-genai
+sentence-transformers
+requests
+protobuf==3.20.3 # Important: Pin protobuf to avoid compatibility issues
 
-### 2. Run Tests
+4. Set Up API Keys
+Create a .env file in the root directory of your project (same level as test3.py or your main app file) and add your API keys:
 
-Execute test scripts to validate the functionality of the vector database and search capabilities.
+GEMINI_API_KEY="YOUR_GOOGLE_GEMINI_API_KEY"
+GROQ_API_KEY="YOUR_GROQ_API_KEY" # Optional, but recommended for expanded suggestions
 
-```bash
-python test.py
-python test2.py
-python test3.py
-```
+Google Gemini API Key: Obtain from Google AI Studio.
 
-## Project Structure
+Groq API Key: Obtain from Groq Console. If you don't provide this, the "expanded suggestions" feature will be unavailable.
 
-```plaintext
-Hindu/
-├── pdfs/                 # Directory containing PDF files to be processed
-├── build_vector_db.py    # Script to build the vector database from PDFs
-├── test.py               # Test script 1
-├── test2.py              # Test script 2
-├── test3.py              # Test script 3
-└── requirements.txt      # Python dependencies
-```
+5. Prepare Your Hindu Scripture Vector Database
+This is a crucial step. The RAG component relies on a pre-built vector database of your Hindu scriptures.
 
-## Contributing
+Gather your data: Collect your Hindu scripture texts (e.g., .txt, .pdf files).
 
-Contributions are welcome! Please fork the repository and submit a pull request for any enhancements or bug fixes.
+Create an ingestion script: You'll need a separate Python script to:
 
-## License
+Load your scripture texts.
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+Split them into manageable chunks.
+
+Generate embeddings for these chunks using HuggingFaceEmbeddings.
+
+Store these embeddings in a ChromaDB instance.
+
+Ensure the database is saved to the directory specified in the app: db_hindu_scriptures.
+
+Example (Conceptual) Ingestion Script Snippet:
+
+from langchain_community.document_loaders import TextLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
+import os
+
+# Your Hindu scripture texts directory
+DATA_PATH = "path/to/your/hindu_scripture_texts"
+CHROMA_DB_DIR = "db_hindu_scriptures"
+
+# Load documents (example for text files)
+documents = []
+for filename in os.listdir(DATA_PATH):
+    if filename.endswith(".txt"):
+        loader = TextLoader(os.path.join(DATA_PATH, filename))
+        documents.extend(loader.load())
+
+# Split documents into chunks
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+texts = text_splitter.split_documents(documents)
+
+# Initialize embeddings
+embedding_model = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2",
+    model_kwargs={"device": "cpu"},
+    encode_kwargs={'normalize_embeddings': True}
+)
+
+# Create and persist the ChromaDB
+print(f"Creating ChromaDB at {CHROMA_DB_DIR}...")
+db = Chroma.from_documents(
+    texts,
+    embedding_model,
+    persist_directory=CHROMA_DB_DIR
+)
+db.persist()
+print("ChromaDB created and persisted successfully!")
+
+Run this script once to create your db_hindu_scriptures directory.
+
+🏃 How to Run
+Once you have installed the dependencies and prepared your .env file and ChromaDB, run the Streamlit application:
+
+streamlit run your_app_file_name.py # Replace 'your_app_file_name.py' with the actual name of your Python script
+
+This will open the application in your web browser.
+
+⚠️ Disclaimer
+This advisor provides general spiritual guidance based on Hindu scriptures. It is an AI model and should not be considered a substitute for personal spiritual practice, the advice of qualified spiritual teachers, or professional counseling for complex life issues. Always exercise discernment and consult appropriate experts for personalized guidance.
+
+👤 Created by Lord d'Artagnan
