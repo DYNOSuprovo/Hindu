@@ -3,15 +3,15 @@ openai
 python-dotenv
 langchain
 langchain-google-genai
-chromadb
-# Add this line:
+# Pin chromadb to a specific version
+chromadb==0.4.24
 pysqlite3-binary
 sentence-transformers
 tqdm
 typing-extensions
 concurrent-log-handler
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch==2.3.0+cpu # Or your chosen CPU version
+torch==2.3.0+cpu # Or your chosen compatible CPU version
 transformers
 accelerate
 pypdf
