@@ -125,6 +125,7 @@ except Exception as e:
 scripture_prompt = PromptTemplate.from_template("""
 You are an AI assistant specialized in Hindu scriptures and spiritual guidance.
 Based on the following conversation history and the user's query, provide a simple, practical, and culturally relevant answer or guidance.
+If the user's query is vague or refers to a previous topic (e.g., "he", "it"), **always use the chat history to understand who or what is being referred to.**
 If a specific **{spiritual_concept}** or **{life_problem}** is mentioned or inferred, prioritize insights from relevant **{scripture_source}**.
 Focus on teachings from primary Hindu texts and their practical application.
 Be helpful, encouraging, and specific where possible.
@@ -238,7 +239,7 @@ def groq_scripture_answer(model_name: str, query: str, spiritual_concept: str = 
         response.raise_for_status()
         data = response.json()
         if data and data.get('choices') and data['choices'][0].get('message'):
-            return data['choices'][0]['message']['content']
+            return data['choices'][0']['message']['content']
         return f"No suggestion from {actual_model_name} (empty/malformed response)."
     except requests.exceptions.Timeout: return f"Timeout error from {model_name}."
     except requests.exceptions.RequestException as e: return f"Request error from {model_name}: {e}"
@@ -426,7 +427,7 @@ if session_id_input and session_id_input != st.session_state.session_id:
     st.session_state.last_substantive_query = temp_last_substantive_query
     st.session_state.messages = new_ui_messages
     logging.info(f"Switched to session {st.session_state.session_id}. Loaded {len(new_ui_messages)} UI messages. Last substantive: '{temp_last_substantive_query}'")
-    st.toast(f"Switched to session: {st.session_state.session_id}. History loaded.")
+    st.toast(f"Switched to session: {st.session_id}. History loaded.") # Changed from st.session_state.session_id
     st.rerun()
 
 if "messages" not in st.session_state: st.session_state.messages = []
