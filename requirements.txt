@@ -13,3 +13,4 @@ transformers
 pypdf
 langchain-community
 google-generativeai
+gdown
