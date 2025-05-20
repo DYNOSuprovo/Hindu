@@ -8,9 +8,9 @@ sentence-transformers
 tqdm
 typing-extensions
 concurrent-log-handler
-torch==2.3.0+cpu # Or your chosen CPU version
+torch==2.3.0+cpu
 transformers
-accelerate # Add this
+accelerate
 pypdf
 langchain-community
 google-generativeai
