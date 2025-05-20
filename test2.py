@@ -5,7 +5,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 
 # Set your API key
-os.environ["GROQ_API_KEY"] = "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"
+os.environ["GROQ_API_KEY"] = "grok"
 
 # Load Groq LLM
 llm = ChatGroq(model_name="gemma2-9b-it", temperature=0.3)
