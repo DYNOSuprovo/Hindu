@@ -58,14 +58,10 @@ if not GROQ_API_KEY:
 try:
     logging.info("Starting HuggingFaceEmbeddings initialization with 'all-MiniLM-L6-v2' on CPU.")
 
-    # Eagerly load the SentenceTransformer model on CPU to avoid meta device issues
     st.info("Loading embedding model (this may take a moment)...")
-    model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
-    logging.info(f"SentenceTransformer model loaded on device: {next(model.parameters()).device}")
-
-    # Pass the initialized model to HuggingFaceEmbeddings
     embedding = HuggingFaceEmbeddings(
-        model=model,
+        model_name="all-MiniLM-L6-v2", # Pass the model name as a string
+        model_kwargs={'device': 'cpu'}, # Specify the device here
         encode_kwargs={'normalize_embeddings': True}
     )
     logging.info("HuggingFaceEmbeddings initialized successfully.")
@@ -90,7 +86,6 @@ except Exception as e:
     st.error(error_msg)
     logging.exception("Full VectorDB setup traceback:")
     st.stop()
-
 
 # --- RAG Prompt Template (UPDATED for Hindu Scriptures) ---
 scripture_prompt = PromptTemplate.from_template("""
