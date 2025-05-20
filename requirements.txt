@@ -1,7 +1,7 @@
 streamlit
 openai
 python-dotenv
-langchain==0.1.16 # Pin to a known stable version
+langchain==0.1.16
 langchain-google-genai
 chromadb==0.4.24
 pysqlite3-binary
@@ -14,8 +14,8 @@ torch==2.3.0+cpu
 transformers
 accelerate
 pypdf
-langchain-community==0.0.33 # Pin to a known stable version
-langchain-core==0.1.43 # Add this line and pin to a compatible version
+langchain-community==0.0.33
+langchain-core==0.1.43
 google-generativeai
 gdown
 numpy==1.26.4
