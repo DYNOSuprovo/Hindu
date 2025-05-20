@@ -130,6 +130,7 @@ Focus on teachings from primary Hindu texts and their practical application.
 Be helpful, encouraging, and specific where possible.
 Use the chat history to understand the context of the user's current query and maintain continuity.
 Strictly adhere to the **{spiritual_concept}** and **{life_problem}** requirements, and the **{scripture_source}** preference if specified.
+**Ensure your language is simple, clear, and easy for a general audience to understand.**
 
 Chat History:
 {chat_history}
@@ -185,6 +186,7 @@ Your goal is to synthesize information from a primary RAG-based answer and sever
 Prioritize the Primary RAG Answer. If it's weak or irrelevant, use Additional Suggestions.
 Ensure the final guidance is clear, actionable, and respectful of Hindu traditions. Present as a clear paragraph or a list of points.
 If the user's input was *only* a greeting, respond politely. For inputs that include a greeting but also contain a query, focus on answering the query.
+**Ensure your language is simple, clear, and easy for a general audience to understand.**
 
 Primary RAG Answer:
 {rag}
@@ -205,6 +207,7 @@ Prioritize the Primary RAG Answer. If it's weak or irrelevant, use Additional Su
 Ensure the final guidance is clear, actionable, and respectful of Hindu traditions.
 **You MUST present the final guidance as a clear markdown table if appropriate. Include columns for Concept/Teaching, Scripture Reference, and Practical Application.**
 If the user's input was *only* a greeting, respond politely. For inputs that include a greeting but also contain a query, focus on answering the query.
+**Ensure your language is simple, clear, and easy for a general audience to understand.**
 
 Primary RAG Answer:
 {rag}
@@ -227,7 +230,8 @@ def groq_scripture_answer(model_name: str, query: str, spiritual_concept: str = 
         headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
         groq_model_map = {"llama": "llama3-70b-8192", "mixtral": "mixtral-8x7b-32976", "gemma": "gemma2-9b-it"}
         actual_model_name = groq_model_map.get(model_name.lower(), model_name)
-        prompt_content = f"User query: '{query}'. Provide a concise, practical spiritual guidance or answer related to **{spiritual_concept}** for **{life_problem}**, referencing **{scripture_source}** if applicable. Be brief."
+        # Added instruction for simpler language in Groq prompt
+        prompt_content = f"User query: '{query}'. Provide a concise, practical spiritual guidance or answer related to **{spiritual_concept}** for **{life_problem}**, referencing **{scripture_source}** if applicable. Be brief and use simple, easy-to-understand English."
         payload = {"model": actual_model_name, "messages": [{"role": "user", "content": prompt_content}], "temperature": 0.5, "max_tokens": 250}
         logging.info(f"Calling Groq API: {actual_model_name} for query: '{query}' (Concept: {spiritual_concept}, Problem: {life_problem}, Source: {scripture_source})")
         response = requests.post(url, headers=headers, json=payload, timeout=30)
