@@ -10,14 +10,14 @@ typing-extensions
 concurrent-log-handler
 
 # --- IMPORTANT CHANGE FOR TORCH ---
-# Add this line first to tell pip where to find specific torch builds
+# Add this line FIRST to tell pip where to find specific torch builds
 --find-links https://download.pytorch.org/whl/torch_stable.html
 
-# Then specify the CPU-only torch version
-torch==2.3.0+cpu # <--- ENSURE THIS VERSION MATCHES THE ONE YOU CHOSE ABOVE!
+# Then specify the CPU-only torch version.  MAKE SURE THE VERSION MATCHES!
+torch==2.3.0+cpu  # Or use a different, *compatible* version.  See below.
 
 transformers
-accelerate # Good to keep this
+accelerate  # Good to keep this
 pypdf
 langchain-community
 google-generativeai
