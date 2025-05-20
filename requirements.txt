@@ -4,20 +4,16 @@ python-dotenv
 langchain
 langchain-google-genai
 chromadb
+# Add this line:
+pysqlite3-binary
 sentence-transformers
 tqdm
 typing-extensions
 concurrent-log-handler
-
-# --- IMPORTANT CHANGE FOR TORCH ---
-# Add this line FIRST to tell pip where to find specific torch builds
 --find-links https://download.pytorch.org/whl/torch_stable.html
-
-# Then specify the CPU-only torch version.  MAKE SURE THE VERSION MATCHES!
-torch==2.3.0+cpu  # Or use a different, *compatible* version.  See below.
-
+torch==2.3.0+cpu # Or your chosen CPU version
 transformers
-accelerate  # Good to keep this
+accelerate
 pypdf
 langchain-community
 google-generativeai
