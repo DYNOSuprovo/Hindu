@@ -3,9 +3,13 @@ from pdfs.fetch import download_and_extract
 DB_FILE_ID = "1pvrwMfMQ4oPYU-IhHN3mTurM5JJBHCVx"
 # Automatically download and extract if missing
 download_and_extract(DB_FILE_ID, "db.zip", "db")
+
+# IMPORTANT: Ensure pysqlite3 is imported and takes precedence over system sqlite3
+# This must be done BEFORE any other imports that might implicitly use sqlite3 (like chromadb)
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 import streamlit as st
 import os
 import requests
@@ -28,6 +32,9 @@ import google.generativeai as genai
 import logging # Add logging for better error inspection
 import string # Import string module for punctuation removal
 import re # Import regex for regional preference extraction
+
+import chromadb
+from chromadb.config import Settings # Import Settings for explicit configuration
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -58,6 +65,7 @@ except Exception as e:
 if not GROQ_API_KEY:
     st.warning("GROQ_API_KEY not found. Groq suggestions will be unavailable.")
     logging.warning("GROQ_API_KEY not found.")
+
 try:
     logging.info("Starting HuggingFaceEmbeddings initialization with 'all-MiniLM-L6-v2' on CPU.")
 
@@ -78,9 +86,17 @@ try:
         st.error(error_msg)
         logging.error(error_msg)
         st.stop()
-
-    # Initialize Chroma vector store with the embeddings
-    db = Chroma(persist_directory=chroma_db_directory, embedding_function=embedding)
+    chroma_settings = Settings(
+        persist_directory=chroma_db_directory,
+        is_persistent=True # Explicitly state it's persistent
+    )
+    chroma_client = chromadb.Client(settings=chroma_settings)
+    logging.info("Chroma Client initialized successfully with explicit settings.")
+    db = Chroma(
+        client=chroma_client, # Pass the explicitly created client
+        embedding_function=embedding,
+        collection_name="hindu_scriptures" # It's good practice to name your collection
+    )
     logging.info("Chroma DB loaded successfully.")
     st.success("Vector database loaded successfully.")
 
@@ -89,8 +105,6 @@ except Exception as e:
     st.error(error_msg)
     logging.exception("Full VectorDB setup traceback:")
     st.stop()
-
-# --- RAG Prompt Template (UPDATED for Hindu Scriptures) ---
 scripture_prompt = PromptTemplate.from_template("""
 You are an AI assistant specialized in Hindu scriptures and spiritual guidance.
 Based on the following conversation history and the user's query, provide a simple, practical, and culturally relevant answer or guidance.
