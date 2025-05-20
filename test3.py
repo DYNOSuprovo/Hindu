@@ -3,6 +3,9 @@ from pdfs.fetch import download_and_extract
 DB_FILE_ID = "1pvrwMfMQ4oPYU-IhHN3mTurM5JJBHCVx"
 # Automatically download and extract if missing
 download_and_extract(DB_FILE_ID, "db.zip", "db")
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 import os
 import requests
