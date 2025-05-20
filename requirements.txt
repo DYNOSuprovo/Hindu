@@ -3,8 +3,7 @@ openai
 python-dotenv
 langchain
 langchain-google-genai
-# Pin chromadb to a specific version
-chromadb==0.4.24
+chromadb==0.4.24 # Keep this pinned
 pysqlite3-binary
 sentence-transformers
 tqdm
@@ -18,3 +17,5 @@ pypdf
 langchain-community
 google-generativeai
 gdown
+# Add this line to pin NumPy to a compatible version
+numpy==1.26.4 # Or 1.26.x, or 1.24.x if 1.26.4 still causes issues
