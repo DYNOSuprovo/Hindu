@@ -560,7 +560,3 @@ if query:
                     session_history.messages.pop()
                 session_history.add_ai_message(final_answer)
                 logging.info("Final merged answer added to Langchain history.")
-
-st.markdown("---")
-st.markdown("Disclaimer: This advisor provides general spiritual guidance based on scriptures. For personal spiritual practice or complex life issues, consulting a qualified spiritual teacher or counselor is recommended.")
-logging.info("Application request processing finished.")
