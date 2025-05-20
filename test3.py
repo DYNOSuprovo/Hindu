@@ -256,8 +256,8 @@ def groq_scripture_answer(model_name: str, query: str, spiritual_concept: str = 
         headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
         groq_model_map = {"llama": "llama3-70b-8192", "mixtral": "mixtral-8x7b-32976", "gemma": "gemma2-9b-it"}
         actual_model_name = groq_model_map.get(model_name.lower(), model_name)
-        # Added instruction for simpler language in Groq prompt
-        prompt_content = f"User query: '{query.replace(\"'\", \"\\'\")}'. Provide a concise, practical spiritual guidance or answer related to **{spiritual_concept.replace(\"'\", \"\\'\")}** for **{life_problem.replace(\"'\", \"\\'\")}**, referencing **{scripture_source.replace(\"'\", \"\\'\")}** if applicable. Be brief and use simple, easy-to-understand English."
+        # Replaced f-string with triple quotes and removed .replace() for robustness
+        prompt_content = f"""User query: '{query}'. Provide a concise, practical spiritual guidance or answer related to **{spiritual_concept}** for **{life_problem}**, referencing **{scripture_source}** if applicable. Be brief and use simple, easy-to-understand English."""
         payload = {"model": actual_model_name, "messages": [{"role": "user", "content": prompt_content}], "temperature": 0.5, "max_tokens": 250}
         logging.info(f"Calling Groq API: {actual_model_name} for query: '{query}' (Concept: {spiritual_concept}, Problem: {life_problem}, Source: {scripture_source})")
         response = requests.post(url, headers=headers, json=payload, timeout=30)
