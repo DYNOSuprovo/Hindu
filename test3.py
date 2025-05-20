@@ -58,13 +58,13 @@ if not GROQ_API_KEY:
 try:
     logging.info("Attempting to load SentenceTransformer model for embeddings.")
     try:
-        SentenceTransformer("all-MiniLM-L6-v2")
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        model = model.to("cpu")  # ✅ Move to CPU safely after loading
         logging.info("SentenceTransformer model 'all-MiniLM-L6-v2' is available.")
     except Exception as model_e:
         st.error(f"Failed to load SentenceTransformer model: {model_e}. Please check your internet connection or environment.")
         logging.error(f"SentenceTransformer model loading error: {model_e}")
         st.stop()
-
     embedding = HuggingFaceEmbeddings(
         model_name="all-MiniLM-L6-v2",
         model_kwargs={"device": "cpu"},
