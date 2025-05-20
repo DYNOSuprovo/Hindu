@@ -8,10 +8,9 @@ sentence-transformers
 tqdm
 typing-extensions
 concurrent-log-handler
-# BEFORE: torch
-# AFTER: Specify CPU-only torch
-torch==2.3.0+cpu # <--- IMPORTANT: Use the exact version for CPU if possible, or a compatible one
+torch==2.3.0+cpu # Or your chosen CPU version
 transformers
+accelerate # Add this
 pypdf
 langchain-community
 google-generativeai
