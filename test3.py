@@ -56,26 +56,38 @@ if not GROQ_API_KEY:
     st.warning("GROQ_API_KEY not found. Groq suggestions will be unavailable.")
     logging.warning("GROQ_API_KEY not found.")
 try:
-    logging.info("Initializing HuggingFaceEmbeddings with 'all-MiniLM-L6-v2' on CPU.")
-    
+    logging.info("Starting HuggingFaceEmbeddings initialization with 'all-MiniLM-L6-v2' on CPU.")
+
+    # Eagerly load the SentenceTransformer model on CPU to avoid meta device issues
+    st.info("Loading embedding model (this may take a moment)...")
+    model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+    logging.info(f"SentenceTransformer model loaded on device: {next(model.parameters()).device}")
+
+    # Pass the initialized model to HuggingFaceEmbeddings
     embedding = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"},
+        model=model,
         encode_kwargs={'normalize_embeddings': True}
     )
     logging.info("HuggingFaceEmbeddings initialized successfully.")
-    
+
     chroma_db_directory = "db"
     if not os.path.exists(chroma_db_directory):
-        st.error(f"ChromaDB directory '{chroma_db_directory}' not found. Please ensure the DB is initialized first with your Hindu scriptures.")
-        logging.error(f"ChromaDB directory '{chroma_db_directory}' not found.")
+        error_msg = (
+            f"ChromaDB directory '{chroma_db_directory}' not found. "
+            "Please ensure the DB is initialized first with your Hindu scriptures."
+        )
+        st.error(error_msg)
+        logging.error(error_msg)
         st.stop()
 
+    # Initialize Chroma vector store with the embeddings
     db = Chroma(persist_directory=chroma_db_directory, embedding_function=embedding)
     logging.info("Chroma DB loaded successfully.")
+    st.success("Vector database loaded successfully.")
 
 except Exception as e:
-    st.error(f"VectorDB setup error: {e}")
+    error_msg = f"VectorDB setup error: {str(e)}"
+    st.error(error_msg)
     logging.exception("Full VectorDB setup traceback:")
     st.stop()
 
