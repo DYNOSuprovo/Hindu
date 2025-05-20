@@ -239,7 +239,7 @@ def groq_scripture_answer(model_name: str, query: str, spiritual_concept: str = 
         response.raise_for_status()
         data = response.json()
         if data and data.get('choices') and data['choices'][0].get('message'):
-            return data['choices'][0']['message']['content']
+            return data['choices']['0']['message']['content']
         return f"No suggestion from {actual_model_name} (empty/malformed response)."
     except requests.exceptions.Timeout: return f"Timeout error from {model_name}."
     except requests.exceptions.RequestException as e: return f"Request error from {model_name}: {e}"
